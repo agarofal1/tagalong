@@ -94,6 +94,8 @@ if [[ -z "${humanRegion}" ]]; then
 	humanRegion="NA"
 fi
 
+scriptDir=$(pwd)
+
 echo "BAM file : $bam"
 echo "Sample : $sample"
 echo "Human reference genome : $humanRef"
@@ -127,7 +129,7 @@ fi
 if [[ ! -e "$cnvDir"/${sample}.depth.offtarget.gc.bed ]]; then
 	echo "Generating read counts in $binSize bp bins..."
 
-	/drive3/staging/agarofal/CNV_integration_method/scripts/bin-off-t-coverage.sh $bam $sample $refidx $humanRef $binSize $mapQ $humanRegion $cnvDir
+	$scriptDir/bin-off-t-coverage.sh $bam $sample $refidx $humanRef $binSize $mapQ $humanRegion $cnvDir
 
 	echo "Done."
 fi
@@ -144,18 +146,18 @@ fi
 export LD_LIBRARY_PATH=$HOME/usr/lib64:$HOME/bin/lib:$HOME/bin/lib64
 
 if [[ ! -e "$cnvDir"/${sample}.sig_bins.bed ]]; then
-	Rscript /drive3/staging/agarofal/CNV_integration_method/scripts/bayes-CNV.R $infoBed $controlData $cnvDir/${sample}.depth.offtarget.gc.bed $binSize $windowSize $threads $alpha $cnvDir $seed
+	Rscript $scriptDir/bayes-CNV.R $infoBed $controlData $cnvDir/${sample}.depth.offtarget.gc.bed $binSize $windowSize $threads $alpha $cnvDir $seed
 fi
 
 echo "Extracting and filtering soft-clipped reads from outlier bins..."
 
-sh /drive3/staging/agarofal/CNV_integration_method/scripts/extract-viral-softclips.sh $cnvDir/${sample}.sig_bins.bed $sample $bam 1000 60 15 10 $breakDir
+sh $scriptDir/extract-viral-softclips.sh $cnvDir/${sample}.sig_bins.bed $sample $bam 1000 60 15 10 $breakDir
 
 rm $breakDir/*add*bp.bed $breakDir/*leftclip* $breakDir/*rightclip* $breakDir/${sample}.softclip*sam 
 
 echo "BLASTing soft-clipped reads to viral DB..."
 
-sh /drive3/staging/agarofal/CNV_integration_method/scripts/run-blast.sh $breakDir $viralDB 90
+sh $scriptDir/run-blast.sh $breakDir $viralDB 90
 
 cat $breakDir/*blast_results.txt > $breakDir/${sample}.all.clusters.blast.results.txt
 
@@ -163,7 +165,7 @@ rm $breakDir/*fa $breakDir/*blast_results.txt
 
 echo "Interpreting BLAST hits and generating breakpoints..."
 
-Rscript /drive3/staging/agarofal/CNV_integration_method/scripts/generate-outputs.R $sample $breakDir/*blast.results.txt $breakDir/*passed.softclip.reads.txt 0.9 0.01 85 0.9 $breakDir
+Rscript $scriptDir/generate-outputs.R $sample $breakDir/*blast.results.txt $breakDir/*passed.softclip.reads.txt 0.9 0.01 85 0.9 $breakDir
 
 echo "Done." 
 

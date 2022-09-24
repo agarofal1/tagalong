@@ -318,11 +318,13 @@ cut.p <- function(p){
 pos.counts <- unlist(pbmclapply(p.increments, function(x) cut.p(x), mc.cores = num.cores, ignore.interactive=T))
 thresh.hits <- data.frame(cbind(p.increments, pos.counts), row.names=NULL, stringsAsFactors = F) %>% dplyr::rename(p.cutoff=1, hits=2) %>% mutate(gen.perc=hits*bin.size/3e9)
 
+thresh.hits.pos <- thresh.hits %>% filter(gen.perc > 0)
+
 elbow.x <- elbow_point(thresh.hits$p.cutoff, thresh.hits$gen.perc)$x
 elbow.y <- elbow_point(thresh.hits$p.cutoff, thresh.hits$gen.perc)$y
 
-elbow.x.log <- elbow_point(thresh.hits$p.cutoff, log10(thresh.hits$gen.perc))$x
-elbow.y.log <- elbow_point(thresh.hits$p.cutoff, log10(thresh.hits$gen.perc))$y
+elbow.x.log <- elbow_point(thresh.hits.pos$p.cutoff, log10(thresh.hits.pos$gen.perc))$x
+elbow.y.log <- elbow_point(thresh.hits.pos$p.cutoff, log10(thresh.hits.pos$gen.perc))$y
 
 jpeg(file=paste(outdir, "/", samp.id, "_posterior_p_cutoffs_vs_perc_genome_hits.jpeg", sep=""), height=3, width=4, res=600, units="in")
 p <- thresh.hits %>% ggplot(aes(x=p.cutoff, y=gen.perc)) + geom_point(size=0.3, colour="navyblue", alpha=0.4) + geom_vline(xintercept=elbow.x, colour="black", linetype="dashed", size=0.5) + geom_hline(yintercept=elbow.y, colour="black", linetype="dashed", size=0.5) + stat_smooth(method="lm", formula = y ~ poly(x, 25), se=F, inherit.aes=T, size=0.5, colour="red") + xlab("Posterior p-value cutoff") + ylab("Fraction of genome\namp-positive") + theme_bw() + scale_x_continuous(breaks = seq(0, 0.1, 0.01))
@@ -330,7 +332,7 @@ print(p)
 graphics.off()
 
 jpeg(file=paste(outdir, "/", samp.id, "_posterior_p_cutoffs_vs_log_perc_genome_hits.jpeg", sep=""), height=3, width=4, res=600, units="in")
-p <- thresh.hits %>% ggplot(aes(x=p.cutoff, y=gen.perc)) + geom_point(size=0.3, colour="navyblue", alpha=0.4) + geom_vline(xintercept=elbow.x.log, colour="black", linetype="dashed", size=0.5) + geom_hline(yintercept=10^elbow.y.log, colour="black", linetype="dashed", size=0.5) + stat_smooth(method="lm", formula = y ~ poly(x, 25), se=F, inherit.aes=T, size=0.5, colour="red") + xlab("Posterior p-value cutoff") + ylab("Fraction of genome\namp-positive") + theme_bw() + scale_x_continuous(breaks = seq(0, 0.1, 0.01)) + scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + annotation_logticks(sides="l")
+p <- thresh.hits.pos %>% ggplot(aes(x=p.cutoff, y=gen.perc)) + geom_point(size=0.3, colour="navyblue", alpha=0.4) + geom_vline(xintercept=elbow.x.log, colour="black", linetype="dashed", size=0.5) + geom_hline(yintercept=10^elbow.y.log, colour="black", linetype="dashed", size=0.5) + stat_smooth(method="lm", formula = y ~ poly(x, 25), se=F, inherit.aes=T, size=0.5, colour="red") + xlab("Posterior p-value cutoff") + ylab("Fraction of genome\namp-positive") + theme_bw() + scale_x_continuous(breaks = seq(0, 0.1, 0.01)) + scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + annotation_logticks(sides="l")
 print(p)
 graphics.off()
 

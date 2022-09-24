@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#humanbam=$1
+humanbam=$1
 sample=$2
 refidx=$3
 ref=$4

@@ -1,2 +1,4 @@
 # tagalong
-Copy number-based method for detecting viral insertional breakpoints in the human genome
+Copy number-based method for detecting viral integration sites in the human genome
+
+

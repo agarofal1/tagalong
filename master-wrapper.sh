@@ -94,7 +94,7 @@ if [[ -z "${humanRegion}" ]]; then
 	humanRegion="NA"
 fi
 
-scriptDir=$(pwd)
+scriptDir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 echo "BAM file : $bam"
 echo "Sample : $sample"

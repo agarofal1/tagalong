@@ -118,8 +118,6 @@ if(ctr.cov.path != "NA"){
 
 samp.id <- samp.read.counts$sample[1]
 
-samp.stats <- samp.read.counts %>% dplyr::summarise(RC_median = median(RC), RC_mean = mean(RC), RC_sd = sd(RC)) %>% ungroup()
-
 samp.read.counts <- samp.read.counts %>% dplyr::select(sample, bin.num, chr, start, end, GC, RC) %>% mutate(RC_norm = RC/mean(RC))
 
 print("Generating read count vs GC scatter plot for sample...")
@@ -152,10 +150,6 @@ samp.rc.adj <- samp.rc.adj %>% mutate(RC_GCcorr = RC / gc_pred) %>% mutate(RC_GC
 
 print("Plotting read count histograms for case sample pre- and post-GC correction...")
 hist.frame <- samp.rc.adj %>% dplyr::select(sample, RC, RC_GCcorr_count) %>% gather(state, RC, 2:3) %>% dplyr::mutate(state = ifelse(state == "RC", "Raw", "GC-corrected"), state = factor(state, levels=c("Raw", "GC-corrected")), RC=ifelse(RC == 0, 0.5, RC))
-
-zero.counts <- hist.frame %>% group_by(state) %>% dplyr::summarise(zero_perc=round(100*length(sample[RC == 0.5])/length(sample), 2))
-
-samp.rc.nozero <- samp.rc.adj %>% filter(RC_GCcorr != 0 & RC != 0)
 
 jpeg(file=paste(outdir, "/", samp.id, "_RC_histogram_before_after_GC_correction.jpeg", sep=""), height=3, width=4, res=600, units="in")
 p <- ggplot(hist.frame, aes(x=RC, fill=state)) + xlab("Per-bin read count") + ylab("Density") + geom_histogram(alpha=0.8, colour="black", position="dodge") + theme_classic() + theme(panel.border = element_rect(colour = "black", fill=NA, size=1), axis.text=element_text(size=12), axis.title=element_text(size=14), legend.text=element_text(size=10), legend.position="top", legend.title=element_blank()) + scale_fill_brewer(palette="Set1") + annotation_logticks(sides="b") + scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) 

@@ -111,6 +111,19 @@ echo "Human selector : $humanRegion"
 echo "Control data : $controlData"
 echo "Output directory : $outDir"
 
+refDir="$outDir"/ref
+if [[ ! -d "$refDir" ]]; then
+	mkdir $refDir
+fi
+
+if [[ ! -e "$refDir"/hg19_${binSize}bp_bins.gc.bed ]]; then
+        echo "Splitting genome into ${binSize} bp bins..."
+        bedtools makewindows -w $binSize -g $refidx > "$refDir"/hg19_${binSize}bp_bins.bed
+        echo "Computing GC content for each bin..."
+        bedtools nuc -fi $humanRef -bed "$refDir"/hg19_${binSize}bp_bins.bed > "$refDir"/hg19_${binSize}bp_bins.info.bed
+        bedtools nuc -fi $humanRef -bed "$refDir"/hg19_${binSize}bp_bins.bed | cut -f1-3,5 > "$refDir"/hg19_${binSize}bp_bins.gc.bed
+fi
+
 if [[ ! -d "$outDir"/"$sample" ]]; then
 	mkdir $outDir/$sample
 fi
@@ -128,8 +141,8 @@ fi
 
 if [[ ! -e "$cnvDir"/${sample}.depth.offtarget.gc.bed ]]; then
 	echo "Generating read counts in $binSize bp bins..."
-
-	$scriptDir/bin-off-t-coverage.sh $bam $sample $refidx $humanRef $binSize $mapQ $humanRegion $cnvDir
+	
+	sh $scriptDir/bin-off-t-coverage.sh $bam $sample $refidx $humanRef $binSize $mapQ $humanRegion $cnvDir $refDir $threads
 
 	echo "Done."
 fi

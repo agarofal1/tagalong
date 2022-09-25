@@ -8,23 +8,23 @@ binsize=$5
 qual=$6
 selector=$7
 outdir=$8
+refdir=$9
+threads=${10}
 
-if [[ ! -e /drive3/staging/agarofal/indexes/hg19_${binsize}bp_bins.gc.bed ]]; then
-	echo "Splitting genome into ${binsize} bp bins..."
-	bedtools makewindows -w $binsize -g $refidx > /drive3/staging/agarofal/indexes/hg19_${binsize}bp_bins.bed
-	echo "Computing GC content for each bin..."
-	bedtools nuc -fi $ref -bed /drive3/staging/agarofal/indexes/hg19_${binsize}bp_bins.bed > /drive3/staging/agarofal/indexes/hg19_${binsize}bp_bins.info.bed
-	bedtools nuc -fi $ref -bed /drive3/staging/agarofal/indexes/hg19_${binsize}bp_bins.bed | cut -f1-3,5 > /drive3/staging/agarofal/indexes/hg19_${binsize}bp_bins.gc.bed
-fi
+parallel=/drive3/staging/agarofal/parallel/src/parallel
+scriptDir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 echo "Counting reads in each bin..."
 
+binbed="$refdir"/hg19_${binsize}bp_bins.gc.bed
+
 if [[ ! -e "$outdir"/${sample}.depth.gc.bed ]]; then
-	if [[ "$qual" != "0" ]]; then
-		bedtools multicov -bed /drive3/staging/agarofal/indexes/hg19_${binsize}bp_bins.gc.bed -bams $humanbam -q $qual | cut -f1-5 > $outdir/${sample}.depth.gc.bed
-	else
-		bedtools multicov -bed /drive3/staging/agarofal/indexes/hg19_${binsize}bp_bins.gc.bed -bams $humanbam | cut -f1-5 > $outdir/${sample}.depth.gc.bed
-	fi
+
+	split -l$((`wc -l < "$binbed"`/$threads)) $binbed "$outdir"/tmpbed -da 4
+
+	readlink -f "$outdir"/tmpbed* | $parallel --bar "sh $scriptDir/count-reads.sh $humanbam $sample {} $binsize $qual $outdir $refdir"
+	
+	cat $outdir/*tmp*bed > $outdir/${sample}.depth.gc.bed
 fi
 
 if [[ "$selector" != "NA" ]]; then
@@ -40,6 +40,5 @@ numlines=`cat $outdir/${sample}.tmp | wc -l`
 yes $sample | head -${numlines} >> $outdir/${sample}.tmp3
 paste $outdir/${sample}.tmp3 $outdir/${sample}.tmp2 > $outdir/${sample}.depth.offtarget.gc.bed
 
-rm $outdir/${sample}.tmp*
+rm $outdir/*tmp*
 
-echo "Done."

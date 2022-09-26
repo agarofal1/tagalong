@@ -1,4 +1,4 @@
 # tagalong
-Copy number-based method for detecting viral integration sites in the human genome
+Hybrid capture-based method for detecting viral integration sites in the human genome
 
 

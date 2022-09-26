@@ -315,7 +315,7 @@ convert.post.to.params <- function(pst){
 
 window.params <- convert.post.to.params(posteriors)
 
-samp.rc.grouped <- merge(samp.rc.grouped, window.params, by="window") %>% group_by(bin.num) %>% mutate(bin.p=(1-pnbinom(RC_GCcorr_count, size=size, mu=mu))) %>% ungroup() #%>% dplyr::select(-c("size", "mu"))
+samp.rc.grouped <- merge(samp.rc.grouped, window.params, by="window") %>% group_by(bin.num) %>% mutate(bin.p=(1-pnbinom(RC_GCcorr_count, size=size, mu=mu))) %>% ungroup() %>% dplyr::select(-c("size", "mu"))
 
 print("Plotting histogram of predictive posterior p-values...")
 jpeg(file=paste(outdir, "/", samp.id, "_posterior_p_histogram.jpeg", sep=""), width=5, height=4, res=600, units="in")

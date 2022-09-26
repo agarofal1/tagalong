@@ -19,6 +19,7 @@ suppressMessages(library(tidybayes))
 suppressMessages(library(akmedoids))
 suppressMessages(library(progress))
 suppressMessages(library(pbmcapply))
+suppressMessages(library(R.utils))
 
 options(scipen=999)
 options(warn=-1)
@@ -228,6 +229,16 @@ generate.posterior <- function(grouped.bin.counts, pr, reps, nchain, sd){
     
     set.seed(sd2)
     stan.pp <- as.numeric(posterior_predict(stan.model, ndraws = 1, cores = 1))
+
+    while(any(is.na(stan.pp))){
+      new.sd <- sd2 + 1
+          
+      stan.model <- brm(data = dat, family=negbinomial, RC_GCcorr_count ~ 1, prior = stan.prior, cores=1, iter=1.2*reps, warmup=0.2*reps, chains=nchain, stanvars=stanvars, seed=new.sd, silent=2, refresh=0, open_progress=F)
+          
+      set.seed(new.sd)
+      stan.pp <- as.numeric(posterior_predict(stan.model, ndraws = 1, cores = 1))
+      sd2 <- new.sd
+    }
     return(stan.pp)
   }
   
@@ -289,8 +300,12 @@ convert.post.to.params <- function(pst){
   windows <- rownames(pst)
   get.params <- function(wind){
     posterior.vec <- pst[rownames(pst) == wind, ]
-    post.fit <- fitdist(posterior.vec, "nbinom", lower=c(0,0), start=list(size=1, mu=1))
-    post.fit.params <- post.fit$estimate
+    if(any(is.na(posterior.vec))){
+      post.fit.params <- c(size=NA, mu=NA)
+    } else{
+      post.fit <- fitdist(posterior.vec, "nbinom", lower=c(0,0), start=list(size=1, mu=1))
+      post.fit.params <- post.fit$estimate
+    }
     return(post.fit.params)
   }
   window.params <- do.call(rbind.data.frame, pbmclapply(windows, function(x) get.params(x), ignore.interactive=T, mc.cores=num.cores)) %>% dplyr::rename(size=1, mu=2)
@@ -300,7 +315,7 @@ convert.post.to.params <- function(pst){
 
 window.params <- convert.post.to.params(posteriors)
 
-samp.rc.grouped <- merge(samp.rc.grouped, window.params, by="window") %>% group_by(bin.num) %>% mutate(bin.p=(1-pnbinom(RC_GCcorr_count, size=size, mu=mu))) %>% ungroup() %>% dplyr::select(-c("size", "mu"))
+samp.rc.grouped <- merge(samp.rc.grouped, window.params, by="window") %>% group_by(bin.num) %>% mutate(bin.p=(1-pnbinom(RC_GCcorr_count, size=size, mu=mu))) %>% ungroup() #%>% dplyr::select(-c("size", "mu"))
 
 print("Plotting histogram of predictive posterior p-values...")
 jpeg(file=paste(outdir, "/", samp.id, "_posterior_p_histogram.jpeg", sep=""), width=5, height=4, res=600, units="in")

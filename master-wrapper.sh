@@ -166,7 +166,7 @@ echo "Extracting and filtering soft-clipped reads from outlier bins..."
 
 sh $scriptDir/extract-viral-softclips.sh $cnvDir/${sample}.sig_bins.bed $sample $bam 1000 60 15 10 $breakDir
 
-rm $breakDir/*add*bp.bed $breakDir/*leftclip* $breakDir/*rightclip* $breakDir/${sample}.softclip*sam 
+rm $breakDir/*leftclip* $breakDir/*rightclip* $breakDir/${sample}.softclip*sam 
 
 echo "BLASTing soft-clipped reads to viral DB..."
 

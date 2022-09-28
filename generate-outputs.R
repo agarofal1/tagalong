@@ -34,6 +34,11 @@ blast.frame <- tryCatch(fread(blast.path, header = F, sep = '\t', stringsAsFacto
 
 blast.frame <- blast.frame %>% dplyr::rename(qseqid=1, sseqid=2, pident=3, qlen=4, alen=5, mismatch=6, gapopen=7, qstart=8, qend=9, sstart=10, send=11, evalue=12, bitscore=13) %>% separate(qseqid, into=c("name", "cluster", "stream"), sep="-", remove=F) %>% mutate(name = gsub(":chr..*", "", name)) %>% unite("cluster", c("cluster", "stream"), sep="_") %>% mutate(qcov = alen / qlen) %>% filter(qcov >= qcov.cutoff & evalue < e.cutoff)
 
+getmode <- function(v) {                                                                                                    
+  uniqv <- unique(v)                                                                                                        
+  uniqv[which.max(tabulate(match(v, uniqv)))]                                                                               
+}
+
 extract.breaks <- function(clust){
   print(clust)
   cluster.sub <- subset(blast.frame, cluster == clust)

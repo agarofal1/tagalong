@@ -44,7 +44,7 @@ if(is.na(seed)){
 print("Starting off-target CNV analysis...")
 
 get_density <- function(x, y, ...) {
-  dens <- MASS::kde2d(x, y, ...)
+  dens <- MASS::kde2d(x, y, h = c(ifelse(MASS::bandwidth.nrd(x) == 0, 0.05, MASS::bandwidth.nrd(x)), ifelse(MASS::bandwidth.nrd(y) == 0, 0.05, MASS::bandwidth.nrd(y))), ...)
   ix <- findInterval(x, dens$x)
   iy <- findInterval(y, dens$y)
   ii <- cbind(ix, iy)
@@ -178,7 +178,7 @@ generate.prior <- function(read.counts, reps, n, dist, sd){
   sim.sizes <- sapply(sim.params, "[[", 1)
   sim.mus <- sapply(sim.params, "[[", 2)
   
-  size.weibull.fit <- fitdist(sim.sizes, "weibull")
+  size.weibull.fit <- fitdist(sim.sizes, "weibull", method="mge")
   size.weibull.shape <- size.weibull.fit$estimate[1]
   size.weibull.scale <- size.weibull.fit$estimate[2]
   

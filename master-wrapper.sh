@@ -168,17 +168,25 @@ sh $scriptDir/extract-viral-softclips.sh $cnvDir/${sample}.sig_bins.bed $sample 
 
 rm $breakDir/*leftclip* $breakDir/*rightclip* $breakDir/${sample}.softclip*sam 
 
-echo "BLASTing soft-clipped reads to viral DB..."
+passed_reads_n=`cat $breakDir/*passed.softclip.reads.txt | wc -l`
 
-sh $scriptDir/run-blast.sh $breakDir $viralDB 90
+if [[ "$passed_reads_n" -eq 1 ]]; then
+	echo "No soft-clipped reads passed filtering. Exiting."
+	echo "No viral integration sites detected." > $breakDir/${sample}.integration.calls.txt
+	exit
+else
+	echo "BLASTing soft-clipped reads to viral DB..."
 
-cat $breakDir/*blast_results.txt > $breakDir/${sample}.all.clusters.blast.results.txt
+	sh $scriptDir/run-blast.sh $breakDir $viralDB 90
 
-rm $breakDir/*fa $breakDir/*blast_results.txt
+	cat $breakDir/*blast_results.txt > $breakDir/${sample}.all.clusters.blast.results.txt
 
-echo "Interpreting BLAST hits and generating breakpoints..."
+	rm $breakDir/*fa $breakDir/*blast_results.txt
 
-Rscript $scriptDir/generate-outputs.R $sample $breakDir/*blast.results.txt $breakDir/*passed.softclip.reads.txt 0.9 0.01 85 0.9 $breakDir
+	echo "Interpreting BLAST hits and generating breakpoints..."
+
+	Rscript $scriptDir/generate-outputs.R $sample $breakDir/*blast.results.txt $breakDir/*passed.softclip.reads.txt 0.9 0.01 85 0.9 $breakDir
+fi
 
 echo "Done." 
 

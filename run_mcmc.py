@@ -34,5 +34,4 @@ def generate_posterior(grouped_bin_counts, prior, reps, nchain, bins_pool, sd, n
             for _ in tqdm.tqdm(p.imap(single_post, window_nums_uniq), total=len(window_nums_uniq)):
                 posteriors = np.vstack([posteriors, _])
                 pass
-
     return posteriors

@@ -213,53 +213,53 @@ write.table(window.summary, file=paste(outdir, "/", samp.id, "_segment_summary_s
 
 print("Calculating posteriors...")
 
-#generate.posterior <- function(grouped.bin.counts, pr, reps, nchain, sd){  
-#  single.post <- function(window.num, sd2){
-#    
-#    dat <- subset(grouped.bin.counts, window == window.num)
-#    if(nrow(dat) < bins.pool){
-#      set.seed(sd2)
-#      dat <- dat %>% sample_n(bins.pool, replace=T)
-#    }
-#    
-#    stanvars <- stanvar(unname(pr$mu[1]), name='m1') + stanvar(unname(pr$mu[2]), name='m2') + stanvar(unname(pr$size[1]), name='s1') + stanvar(unname(pr$size[2]), name='s2')
-#    
-#    stan.prior <- c(prior(lognormal(m1, m2), class="Intercept", lb=0), prior(weibull(s1, s2), class="shape"))
-#    
-#    stan.model <- brm(data = dat, family=negbinomial, RC_GCcorr_count ~ 1, prior = stan.prior, cores=1, iter=1.2*reps, warmup=0.2*reps, chains=nchain, stanvars=stanvars, seed=sd2, silent=2, refresh=0, open_progress=F)
-#    
-#    set.seed(sd2)
-#    stan.pp <- as.numeric(posterior_predict(stan.model, ndraws = 1, cores = 1))
-#
-#    while(any(is.na(stan.pp))){
-#      new.sd <- sd2 + 1
-#          
-#      stan.model <- brm(data = dat, family=negbinomial, RC_GCcorr_count ~ 1, prior = stan.prior, cores=1, iter=1.2*reps, warmup=0.2*reps, chains=nchain, stanvars=stanvars, seed=new.sd, silent=2, refresh=0, open_progress=F)
-#          
-#      set.seed(new.sd)
-#      stan.pp <- as.numeric(posterior_predict(stan.model, ndraws = 1, cores = 1))
-#      sd2 <- new.sd
-#    }
-#    return(stan.pp)
-#  }
-#  
-#  winds <- unique(grouped.bin.counts$window)
-#  c1 <- makeCluster(num.cores)
-#  registerDoSNOW(c1)
-#  pb <- txtProgressBar(min=1, max=length(winds), style=3)
-#  progress <- function(n) setTxtProgressBar(pb, n)
-#  opts <- list(progress=progress)
-#  window.posteriors <- foreach(i=sort(winds), .packages=c("brms", "rstan", "StanHeaders", "Rcpp", "dplyr"), .options.snow=opts, .combine='rbind', .export='bins.pool', .inorder=T) %dopar% {as.numeric(single.post(i, sd))}
-#  close(pb)
-#  stopCluster(c1)
-#  
-#  rownames(window.posteriors) <- sort(winds)
+# generate.posterior <- function(grouped.bin.counts, pr, reps, nchain, sd){  
+#   single.post <- function(window.num, sd2){
+#     
+#     dat <- subset(grouped.bin.counts, window == window.num)
+#     if(nrow(dat) < bins.pool){
+#       set.seed(sd2)
+#       dat <- dat %>% sample_n(bins.pool, replace=T)
+#     }
+#     
+#     stanvars <- stanvar(unname(pr$mu[1]), name='m1') + stanvar(unname(pr$mu[2]), name='m2') + stanvar(unname(pr$size[1]), name='s1') + stanvar(unname(pr$size[2]), name='s2')
+#     
+#     stan.prior <- c(prior(lognormal(m1, m2), class="Intercept", lb=0), prior(weibull(s1, s2), class="shape"))
+#     
+#     stan.model <- brm(data = dat, family=negbinomial, RC_GCcorr_count ~ 1, prior = stan.prior, cores=1, iter=1.2*reps, warmup=0.2*reps, chains=nchain, stanvars=stanvars, seed=sd2, silent=2, refresh=0, open_progress=F)
+#     
+#     set.seed(sd2)
+#     stan.pp <- as.numeric(posterior_predict(stan.model, ndraws = 1, cores = 1))
 # 
-#  return(window.posteriors)
-#}
+#     while(any(is.na(stan.pp))){
+#       new.sd <- sd2 + 1
+#           
+#       stan.model <- brm(data = dat, family=negbinomial, RC_GCcorr_count ~ 1, prior = stan.prior, cores=1, iter=1.2*reps, warmup=0.2*reps, chains=nchain, stanvars=stanvars, seed=new.sd, silent=2, refresh=0, open_progress=F)
+#           
+#       set.seed(new.sd)
+#       stan.pp <- as.numeric(posterior_predict(stan.model, ndraws = 1, cores = 1))
+#       sd2 <- new.sd
+#     }
+#     return(stan.pp)
+#   }
+#   
+#   winds <- unique(grouped.bin.counts$window)
+#   c1 <- makeCluster(num.cores)
+#   registerDoSNOW(c1)
+#   pb <- txtProgressBar(min=1, max=length(winds), style=3)
+#   progress <- function(n) setTxtProgressBar(pb, n)
+#   opts <- list(progress=progress)
+#   window.posteriors <- foreach(i=sort(winds), .packages=c("brms", "rstan", "StanHeaders", "Rcpp", "dplyr"), .options.snow=opts, .combine='rbind', .export='bins.pool', .inorder=T) %dopar% {as.numeric(single.post(i, sd))}
+#   close(pb)
+#   stopCluster(c1)
+#   
+#   rownames(window.posteriors) <- sort(winds)
+#  
+#   return(window.posteriors)
+# }
 
 source_python("~/cell/agarofal/tagalong/scripts/tagalong/run_mcmc.py")
-posteriors <- generate_posterior(samp.rc.grouped, prior, 1000, 3, seed)
+posteriors <- generate_posterior(samp.rc.grouped, prior, as.integer(1000), as.integer(4), as.integer(1000), as.integer(seed), as.integer(num.cores))
 
 plot.all.post <- function(pr, pst, n, sd){
   set.seed(sd)

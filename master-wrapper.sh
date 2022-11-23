@@ -98,7 +98,7 @@ if [[ -z "${humanRegion}" ]]; then
 	humanRegion="NA"
 fi
 
-source $HOME/miniconda3/bin/activate py38
+source /drive3/staging/agarofal/miniconda3/bin/activate py38
 
 scriptDir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 

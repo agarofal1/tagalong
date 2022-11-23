@@ -12,21 +12,24 @@ refdir=$9
 threads=${10}
 
 parallel=/drive3/staging/agarofal/parallel/src/parallel
+# get current script directory
 scriptDir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 echo "Counting reads in each bin..."
-
+# path to template binned bed file with GC content
 binbed="$refdir"/hg19_${binsize}bp_bins.gc.bed
 
+# split bed file into tranches and count reads from each tranche in parallel
 if [[ ! -e "$outdir"/${sample}.depth.gc.bed ]]; then
-
+	
 	split -l$((`wc -l < "$binbed"`/$threads)) $binbed "$outdir"/tmpbed -da 4
-
+	
 	readlink -f "$outdir"/tmpbed* | $parallel --bar "sh $scriptDir/count-reads.sh $humanbam $sample {} $binsize $qual $outdir $refdir"
 	
 	cat $outdir/*tmp*bed > $outdir/${sample}.depth.gc.bed
 fi
 
+# remove regions overlapping human target bed file; these regions are not eligible for off-target peak calling
 if [[ "$selector" != "NA" ]]; then
 	echo "Subtracting on-target regions from coverage file..."
 	bedtools intersect -v -a $outdir/${sample}.depth.gc.bed -b $selector > $outdir/${sample}.tmp

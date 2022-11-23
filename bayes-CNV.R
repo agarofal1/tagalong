@@ -20,7 +20,9 @@ suppressMessages(library(akmedoids))
 suppressMessages(library(progress))
 suppressMessages(library(pbmcapply))
 suppressMessages(library(R.utils))
+suppressMessages(library(this.path))
 suppressMessages(library(reticulate))
+suppressMessages(library(lingmatch))
 
 options(scipen=999)
 options(warn=-1)
@@ -37,6 +39,8 @@ p.thresh <- as.numeric(args[7])
 outdir <- args[8] 
 seed <- as.numeric(args[9])
 ds.factor <- 3e4*bin.size/3e9
+
+script.dir <- dirname(this.path())
 
 if(is.na(seed)){
   seed <- 123
@@ -94,12 +98,6 @@ if(ctr.cov.path != "NA"){
     load(ctr.cov.path)
   }
   
-  print("Generating read count vs GC scatter plot for CTR metasample...")
-  jpeg(file=paste(outdir, "/CTR_metasample_RC_GC_scatterplot.jpeg", sep=""), height=3, width=4, res=600, units="in")
-  p <- ctr.count.average %>% sample_n(0.05*nrow(ctr.count.average)) %>% ggplot(aes(x=GC, y=RC, color=density)) + geom_point(alpha=0.5, size=0.5) + xlab("% GC") + ylab("Read count") + theme_classic() + scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + annotation_logticks(sides="l") + geom_smooth(method="loess", span=0.05, colour="red", se=F) + scale_color_viridis()
-  print(p)
-  graphics.off()
-  
   write.table(ctr.count.average %>% dplyr::select(-density), file=paste(outdir, "/CTR_metasample_bin_stats.txt", sep=""), col.names=T, row.names=F, sep="\t", quote=F)
   
   blacklist.perc <- 1
@@ -121,21 +119,6 @@ if(ctr.cov.path != "NA"){
 samp.id <- samp.read.counts$sample[1]
 
 samp.read.counts <- samp.read.counts %>% dplyr::select(sample, bin.num, chr, start, end, GC, RC) %>% mutate(RC_norm = RC/mean(RC))
-
-print("Generating read count vs GC scatter plot for sample...")
-
-samp.read.counts.density <- samp.read.counts %>% filter(RC != 0)
-
-c1 <- makeCluster(num.cores)
-registerDoSNOW(c1)
-splits <- sort(rank(1:nrow(samp.read.counts.density)) %% num.cores)
-samp.read.counts.density$density <- foreach(i=unique(splits), .combine=c) %dopar% {as.numeric(get_density(samp.read.counts.density$GC[splits == i], log10(samp.read.counts.density$RC[splits == i]), n=100))}
-stopCluster(c1)
-
-jpeg(file=paste(outdir, "/", samp.id, "_RC_GC_scatterplot.jpeg", sep=""), height=3, width=4, res=600, units="in")
-p <- samp.read.counts.density %>% sample_n(0.05*length(sample)) %>% ggplot(aes(x=GC, y=RC, colour=density)) + geom_point(alpha=0.5, size=0.5) + xlab("% GC") + ylab("Read count") + geom_smooth(method="loess", span=0.05, colour="red", se=F) + theme_classic() + scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + annotation_logticks(sides="l") + scale_color_viridis()
-print(p)
-graphics.off()
 
 print("GC-correcting case sample...")
 set.seed(seed)
@@ -193,7 +176,9 @@ generate.prior <- function(read.counts, reps, n, dist, sd){
 }
 
 print("Generating prior...")
-prior <- generate.prior(samp.rc.adj, 1e3, 1e3, "nbinom", seed)
+prior <- generate.prior(samp.rc.adj, 1e4, 1e4, "nbinom", seed)
+py.prior <- dict(prior)
+write.table(gsub("\'", "\"", as.character(py.prior)), file=paste(outdir, "/", samp.id, ".prior.dict", sep=""), col.names=F, row.names=F, quote=F)
 
 group.bins <- function(read.counts, window.size){
   rc.grouped <- read.counts %>% group_by(chr) %>% dplyr::mutate(grp = rep(row_number(), length.out = n(), each = window.size), window.id = paste(chr, grp, sep=":"))
@@ -210,6 +195,7 @@ window.summary <- samp.rc.grouped %>% group_by(window) %>% dplyr::summarise(wind
 zero.windows <- subset(window.summary, window.zeros == 1)$window
 
 write.table(window.summary, file=paste(outdir, "/", samp.id, "_segment_summary_stats.txt", sep=""), col.names=T, row.names=F, sep="\t", quote=F)
+write.table(samp.rc.grouped, file=paste(outdir, "/", samp.id, "_bin_stats.tmp", sep=""), row.names=F, col.names=T, sep="\t", quote=F)
 
 print("Calculating posteriors...")
 
@@ -258,8 +244,16 @@ print("Calculating posteriors...")
 #   return(window.posteriors)
 # }
 
-source_python("~/cell/agarofal/tagalong/scripts/tagalong/run_mcmc.py")
-posteriors <- generate_posterior(samp.rc.grouped, prior, as.integer(1000), as.integer(4), as.integer(1000), as.integer(seed), as.integer(num.cores))
+sys.command <- paste("python3 ", script.dir, "/run_mcmc.py ", paste(outdir, "/", samp.id, "_bin_stats.tmp", sep=""), " ", paste(outdir, "/", samp.id, ".prior.dict", sep=""), " ", 1000, " ", 4, " ", bins.pool, " ", seed, " ", num.cores, " ", outdir, sep="")
+
+system(sys.command)
+
+rm.command <- paste("rm ", paste(outdir, "/", samp.id, "_bin_stats.tmp", sep=""), " ", paste(outdir, "/", samp.id, ".prior.dict", sep=""), sep="")
+
+system(rm.command)
+
+post.path <- paste(outdir, "/posteriors.tmp", sep="")
+posteriors <- as.matrix(fread(post.path, sep="\t", header=F, stringsAsFactors=F))
 
 plot.all.post <- function(pr, pst, n, sd){
   set.seed(sd)

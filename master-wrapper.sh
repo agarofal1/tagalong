@@ -1,4 +1,8 @@
 #!/bin/bash
+# tagalong v0.1
+# Author: Andrea Garofalo
+# Date: 21 November 2022
+
 usage() { echo "Usage: $0 [-b <bam file>] [-s <sample>] [-r <reference genome index>] [-h <human reference genome>] [-v <viral blast database>] [-l <bin size>] [-w <posterior window size>] [-Q <mapping quality threshold>] [-a <bin significance threshold>] [-L <human selector>] [-c <path to control data>] [-p <number of parallel threads>] [-S <seed for simulations>] [-o <output directory>]" 1>&2; exit 1; } 
  
 while getopts ":b:s:r:h:v:l:w:Q:a:L:c:p:S:o:" o; do 
@@ -94,6 +98,8 @@ if [[ -z "${humanRegion}" ]]; then
 	humanRegion="NA"
 fi
 
+source $HOME/miniconda3/bin/activate py38
+
 scriptDir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 echo "BAM file : $bam"
@@ -116,9 +122,10 @@ if [[ ! -d "$refDir" ]]; then
 	mkdir $refDir
 fi
 
+# generate bed file with desired bin size from hg19 if it doesn't exist yet
 if [[ ! -e "$refDir"/hg19_${binSize}bp_bins.gc.bed ]]; then
         echo "Splitting genome into ${binSize} bp bins..."
-        bedtools makewindows -w $binSize -g $refidx > "$refDir"/hg19_${binSize}bp_bins.bed
+	bedtools makewindows -w $binSize -g $refidx > "$refDir"/hg19_${binSize}bp_bins.bed
         echo "Computing GC content for each bin..."
         bedtools nuc -fi $humanRef -bed "$refDir"/hg19_${binSize}bp_bins.bed > "$refDir"/hg19_${binSize}bp_bins.info.bed
         bedtools nuc -fi $humanRef -bed "$refDir"/hg19_${binSize}bp_bins.bed | cut -f1-3,5 > "$refDir"/hg19_${binSize}bp_bins.gc.bed
@@ -139,6 +146,7 @@ if [[ ! -d "$breakDir" ]]; then
 	mkdir $breakDir
 fi
 
+#collect read count in each genomic bin from sample bed file
 if [[ ! -e "$cnvDir"/${sample}.depth.offtarget.gc.bed ]]; then
 	echo "Generating read counts in $binSize bp bins..."
 	

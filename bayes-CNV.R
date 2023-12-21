@@ -94,7 +94,7 @@ if(ctr.cov.path != "NA"){
   }
   
   print("Generating read count vs GC scatter plot for CTR metasample...")
-  jpeg(file=paste(outdir, "/CTR_metasample_RC_GC_scatterplot.jpeg", sep=""), height=3, width=4, res=600, units="in")
+  pdf(file=paste(outdir, "/CTR_metasample_RC_GC_scatterplot.pdf", sep=""), height=3, width=4)
   p <- ctr.count.average %>% sample_n(0.05*nrow(ctr.count.average)) %>% ggplot(aes(x=GC, y=RC, color=density)) + geom_point(alpha=0.5, size=0.5) + xlab("% GC") + ylab("Read count") + theme_classic() + scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + annotation_logticks(sides="l") + geom_smooth(method="loess", span=0.05, colour="red", se=F) + scale_color_viridis()
   print(p)
   graphics.off()
@@ -131,7 +131,7 @@ splits <- sort(rank(1:nrow(samp.read.counts.density)) %% num.cores)
 samp.read.counts.density$density <- foreach(i=unique(splits), .combine=c) %dopar% {as.numeric(get_density(samp.read.counts.density$GC[splits == i], log10(samp.read.counts.density$RC[splits == i]), n=100))}
 stopCluster(c1)
 
-jpeg(file=paste(outdir, "/", samp.id, "_RC_GC_scatterplot.jpeg", sep=""), height=3, width=4, res=600, units="in")
+pdf(file=paste(outdir, "/", samp.id, "_RC_GC_scatterplot.pdf", sep=""), height=3, width=4)
 p <- samp.read.counts.density %>% sample_n(0.05*length(sample)) %>% ggplot(aes(x=GC, y=RC, colour=density)) + geom_point(alpha=0.5, size=0.5) + xlab("% GC") + ylab("Read count") + geom_smooth(method="loess", span=0.05, colour="red", se=F) + theme_classic() + scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + annotation_logticks(sides="l") + scale_color_viridis()
 print(p)
 graphics.off()
@@ -152,7 +152,7 @@ samp.rc.adj <- samp.rc.adj %>% mutate(RC_GCcorr = RC / gc_pred) %>% mutate(RC_GC
 print("Plotting read count histograms for case sample pre- and post-GC correction...")
 hist.frame <- samp.rc.adj %>% dplyr::select(sample, RC, RC_GCcorr_count) %>% gather(state, RC, 2:3) %>% dplyr::mutate(state = ifelse(state == "RC", "Raw", "GC-corrected"), state = factor(state, levels=c("Raw", "GC-corrected")), RC=ifelse(RC == 0, 0.5, RC))
 
-jpeg(file=paste(outdir, "/", samp.id, "_RC_histogram_before_after_GC_correction.jpeg", sep=""), height=3, width=4, res=600, units="in")
+pdf(file=paste(outdir, "/", samp.id, "_RC_histogram_before_after_GC_correction.pdf", sep=""), height=3, width=4)
 p <- ggplot(hist.frame, aes(x=RC, fill=state)) + xlab("Per-bin read count") + ylab("Density") + geom_histogram(alpha=0.8, colour="black", position="dodge") + theme_classic() + theme(panel.border = element_rect(colour = "black", fill=NA, size=1), axis.text=element_text(size=12), axis.title=element_text(size=14), legend.text=element_text(size=10), legend.position="top", legend.title=element_blank()) + scale_fill_brewer(palette="Set1") + annotation_logticks(sides="b") + scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) 
 print(p)
 graphics.off()
@@ -289,7 +289,7 @@ plot.all.post <- function(pr, pst, n, sd){
 }
 
 print("Plotting posterior distributions...")
-jpeg(file=paste(outdir, "/", samp.id, "_all_posterior_distributions.jpeg", sep=""), height=10, width=8, res=600, units="in")
+pdf(file=paste(outdir, "/", samp.id, "_all_posterior_distributions.pdf", sep=""), height=10, width=8)
 all.post <- plot.all.post(prior, posteriors, 1000, seed)
 plot(all.post)
 graphics.off()
@@ -318,7 +318,7 @@ window.params <- convert.post.to.params(posteriors)
 samp.rc.grouped <- merge(samp.rc.grouped, window.params, by="window") %>% group_by(bin.num) %>% mutate(bin.p=(1-pnbinom(RC_GCcorr_count, size=size, mu=mu))) %>% ungroup() %>% dplyr::select(-c("size", "mu"))
 
 print("Plotting histogram of predictive posterior p-values...")
-jpeg(file=paste(outdir, "/", samp.id, "_posterior_p_histogram.jpeg", sep=""), width=5, height=4, res=600, units="in")
+pdf(file=paste(outdir, "/", samp.id, "_posterior_p_histogram.pdf", sep=""), width=5, height=4)
 plot <- ggplot(samp.rc.grouped, aes(x=bin.p)) + geom_density(colour="black", fill="navyblue", alpha=0.5, size=1) + xlab("Posterior predictive p-value") + ylab("Density") + theme_classic() + theme(axis.title = element_text(size=14), axis.text=element_text(size=12), panel.border=element_rect(colour="black", fill=NA, size=1.5), legend.background=element_blank())
 print(plot)
 dev.off()
@@ -341,12 +341,12 @@ elbow.y <- elbow_point(thresh.hits$p.cutoff, thresh.hits$gen.perc)$y
 elbow.x.log <- elbow_point(thresh.hits.pos$p.cutoff, log10(thresh.hits.pos$gen.perc))$x
 elbow.y.log <- elbow_point(thresh.hits.pos$p.cutoff, log10(thresh.hits.pos$gen.perc))$y
 
-jpeg(file=paste(outdir, "/", samp.id, "_posterior_p_cutoffs_vs_perc_genome_hits.jpeg", sep=""), height=3, width=4, res=600, units="in")
+pdf(file=paste(outdir, "/", samp.id, "_posterior_p_cutoffs_vs_perc_genome_hits.pdf", sep=""), height=3, width=4)
 p <- thresh.hits %>% ggplot(aes(x=p.cutoff, y=gen.perc)) + geom_point(size=0.3, colour="navyblue", alpha=0.4) + geom_vline(xintercept=elbow.x, colour="black", linetype="dashed", size=0.5) + geom_hline(yintercept=elbow.y, colour="black", linetype="dashed", size=0.5) + stat_smooth(method="lm", formula = y ~ poly(x, 25), se=F, inherit.aes=T, size=0.5, colour="red") + xlab("Posterior p-value cutoff") + ylab("Fraction of genome\namp-positive") + theme_bw() + scale_x_continuous(breaks = seq(0, 0.1, 0.01))
 print(p)
 graphics.off()
 
-jpeg(file=paste(outdir, "/", samp.id, "_posterior_p_cutoffs_vs_log_perc_genome_hits.jpeg", sep=""), height=3, width=4, res=600, units="in")
+pdf(file=paste(outdir, "/", samp.id, "_posterior_p_cutoffs_vs_log_perc_genome_hits.pdf", sep=""), height=3, width=4)
 p <- thresh.hits.pos %>% ggplot(aes(x=p.cutoff, y=gen.perc)) + geom_point(size=0.3, colour="navyblue", alpha=0.4) + geom_vline(xintercept=elbow.x.log, colour="black", linetype="dashed", size=0.5) + geom_hline(yintercept=10^elbow.y.log, colour="black", linetype="dashed", size=0.5) + stat_smooth(method="lm", formula = y ~ poly(x, 25), se=F, inherit.aes=T, size=0.5, colour="red") + xlab("Posterior p-value cutoff") + ylab("Fraction of genome\namp-positive") + theme_bw() + scale_x_continuous(breaks = seq(0, 0.1, 0.01)) + scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x))) + annotation_logticks(sides="l")
 print(p)
 graphics.off()

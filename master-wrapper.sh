@@ -156,10 +156,10 @@ if [[ ! -e "$infoBed" ]]; then
 	exit
 fi
 
-export LD_LIBRARY_PATH=$HOME/usr/lib64:$HOME/bin/lib:$HOME/bin/lib64
+export LD_LIBRARY_PATH=/drive3/staging/agarofal/usr/lib64:/drive3/staging/agarofal/bin/lib:/drive3/staging/agarofal/bin/lib64
 
 if [[ ! -e "$cnvDir"/${sample}.sig_bins.bed ]]; then
-	Rscript $scriptDir/bayes-CNV.R $infoBed $controlData $cnvDir/${sample}.depth.offtarget.gc.bed $binSize $windowSize $threads $alpha $cnvDir $seed
+	/drive3/staging/agarofal/R-4.2.3/bin/Rscript $scriptDir/bayes-CNV.R $infoBed $controlData $cnvDir/${sample}.depth.offtarget.gc.bed $binSize $windowSize $threads $alpha $cnvDir $seed
 fi
 
 echo "Extracting and filtering soft-clipped reads from outlier bins..."
@@ -185,7 +185,7 @@ else
 
 	echo "Interpreting BLAST hits and generating breakpoints..."
 
-	Rscript $scriptDir/generate-outputs.R $sample $breakDir/*blast.results.txt $breakDir/*passed.softclip.reads.txt 0.9 0.01 85 0.9 $breakDir
+	/drive3/staging/agarofal/R-4.2.3/bin/Rscript $scriptDir/generate-outputs.R $sample $breakDir/*blast.results.txt $breakDir/*passed.softclip.reads.txt 0.9 0.01 85 0.9 $breakDir
 fi
 
 echo "Done." 
